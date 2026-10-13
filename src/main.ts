@@ -6,18 +6,23 @@ import { biomeAt, roadAt } from './world/road';
 import { terrainHeight } from './world/terrain';
 import { createVehicle, stepVehicle } from './vehicle/physics';
 import { createCar } from './vehicle/model';
-import { createControls } from './input/controls';
+import { createControls, hasManualInput } from './input/controls';
 import { createCameras } from './camera/cameras';
 import { createEngineAudio } from './audio/engine';
 import { createInterface, element } from './ui/interface';
 function boot():void {
-  const graphics=createRenderer(element<HTMLCanvasElement>('game'));
+  const canvas=element<HTMLCanvasElement>('game');
+  canvas.tabIndex=0;
+  const graphics=createRenderer(canvas);
   const world=new ChunkWorld(graphics.scene,'medium'),car=createCar();graphics.scene.add(car.root);
   let state=createVehicle(),paused=true,started=false,autodrive=false,cameraName='Chase';
   let weather:Weather='clear',time:TimeOfDay='day';
   const origin=new THREE.Vector3(),position=new THREE.Vector3();
   const cameras=createCameras(graphics.camera),audio=createEngineAudio();
-  function pause(value:boolean):void {paused=value;controls.clear();ui.pause(paused,started);}
+  function pause(value:boolean):void {
+    paused=value;controls.clear();ui.pause(paused,started);
+    if(!paused) canvas.focus({preventScroll:true});
+  }
   function reset(z=state.z):void {
     const distance=state.distance;state=createVehicle(z);state.distance=distance;cameras.reset();
     origin.set(state.x,0,Math.floor(z/160)*160);world.update(z,origin,true);
@@ -33,9 +38,9 @@ function boot():void {
     else if(name==='mapped') ui.message('Control updated for this session.');
   }
   const controls=createControls(action);
-  const ui=createInterface({action,quality:quality=>{world.setQuality(quality);graphics.setQuality(quality);world.update(state.z,origin,true);},environment:(w,t)=>{weather=w;time=t;graphics.setEnvironment(w,t);},route:z=>{world.clear();world.setQuality(world.quality);reset(z);},audio:audio.setEnabled,autodrive:value=>{autodrive=value;},remap:controls.remap});
+  const ui=createInterface({action,quality:quality=>{world.setQuality(quality);graphics.setQuality(quality);world.update(state.z,origin,true);},environment:(w,t)=>{weather=w;time=t;graphics.setEnvironment(w,t);},route:z=>{world.setQuality(world.quality);reset(z);},audio:audio.setEnabled,autodrive:value=>{autodrive=value;},remap:controls.remap});
   pause(true);world.update(state.z,origin,true);
-  const canvas=element<HTMLCanvasElement>('game');
+  canvas.addEventListener('pointerdown',()=>canvas.focus({preventScroll:true}));
   canvas.addEventListener('webglcontextlost',event=> {event.preventDefault();pause(true);ui.message('Graphics context lost. Reload the page to recover.');});
   let last=performance.now(),accumulator=0,elapsed=0,smoothedFps=60,hudTimer=0;
   const fixed=1/120;
@@ -44,6 +49,10 @@ function boot():void {
     smoothedFps+=(1/Math.max(dt,0.001)-smoothedFps)*0.04;
     let input=controls.sample();
     if(!paused) {
+      if(autodrive && hasManualInput(input)) {
+        autodrive=false;
+        ui.message('Manual driving enabled. Press P to re-enable scenic autopilot.');
+      }
       accumulator+=dt;
       while(accumulator>=fixed) {
         if(autodrive) {
