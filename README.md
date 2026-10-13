@@ -1,10 +1,10 @@
 # Scenic Drive
 
-An original, modular TypeScript / Three.js scenic-driving game. This is an early playable implementation, not a reverse-engineered copy of Slow Roads and not a finished AAA game. No proprietary Slow Roads code or assets are included.
+An original modular TypeScript / Three.js scenic-driving game. This is an early playable implementation, not a reverse-engineered copy of Slow Roads or a finished production game. No proprietary Slow Roads code or assets are included.
 
 ## Run locally
 
-Requires Node.js 22 and npm, a modern WebGL2 browser, and hardware acceleration.
+Requires Node.js 22, npm, and a modern WebGL2 browser with hardware acceleration.
 
 ```sh
 git clone --branch feature/scenic-driving-game https://github.com/shamith201119-ship-it/scenic-drive.git
@@ -13,9 +13,11 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite. Click **Start driving** to begin and unlock audio.
+Open the URL printed by Vite. Click **Start driving** to begin and unlock audio. Do not expose the development server to the public internet.
 
-## Validation
+## Validation status
+
+**Not verified:** the authoring assistant has not executed type checks, lint, unit tests, production builds, or browser playtests. GitHub Actions workflow writes failed repeatedly; no CI workflow or successful CI results are claimed.
 
 ```sh
 npm run typecheck
@@ -25,26 +27,26 @@ npm run build
 npm run preview
 ```
 
-`lint` currently uses strict TypeScript and unused-code diagnostics; it is not an ESLint style checker. The test suite contains eight road and handling tests. Tests and build have **not been executed by the authoring assistant**. Attempts to commit the GitHub Actions workflow failed, so automated CI is not currently available. Do not treat this branch as verified until the commands above pass.
+`lint` currently uses TypeScript strict/unused-code diagnostics, not ESLint. There are now 18 unit-test cases including parameterized quality cases. Added characterization tests cover adjacent terrain seams, bounded resident chunks on all quality presets, large forward/backward jumps, root-origin offsets, cleanup, quality switching, deterministic handling, finite-control clamping, off-road resistance, handbraking, and zero-duration stepping. Tests assert intended/current contracts but remain unexecuted. No gameplay behavior was changed in the regression-test update.
 
-## Implemented systems
+## Implemented foundation
 
 | System | Implementation |
 |---|---|
-| Roads | Deterministic smooth curves and elevation; shoulders, edge lines, dashed center markings, roadside posts |
+| Roads | Deterministic smooth curves and elevation, shoulders, edge lines, center markings, roadside posts |
 | Terrain | Road-integrated height function, vertex-colored hills, alpine snow tint |
-| Biomes | Forest, alpine, desert, coastal; selectable route starting points |
-| Streaming | Quality-dependent chunk radius, one generated chunk per frame after initial loading, GPU resource disposal |
-| Precision | Floating render origin to keep the car and camera near local coordinates |
-| Scenery | Seeded instanced conifer shapes, trunks, desert plants, rocks; road exclusion corridor |
-| Car | Original rounded procedural body, tinted windows, mirrors, rims, animated wheel steering/spin, body roll/pitch, brake lights, night headlights |
-| Handling | Fixed 120 Hz bicycle-style simulation, drag, braking, handbrake, wet traction, off-road resistance |
-| Cameras | Smoothed chase, hood, timed orbit; speed-sensitive field of view |
-| Graphics | Physical car paint, atmospheric sky, fog, directional shadows, tone mapping; high-quality bloom |
-| Weather | Clear, overcast, rain; day, sunset, night presets |
-| Audio | Synthesized engine, wind and rain noise; enabled only after user interaction |
-| Interface | Start/pause menu, settings, speedometer, trip distance, FPS/chunk/draw-call diagnostics |
-| Input | Keyboard, session-only key remapping, pointer-captured touch controls, focus-loss pause |
+| Biomes | Forest, alpine, desert, coastal route starting points |
+| Streaming | Quality-dependent radius, incremental generation after initial loading, GPU resource disposal |
+| Precision | Floating render origin keeps car and camera near local coordinates |
+| Scenery | Seeded instanced trees, trunks, desert plants, rocks; road exclusion corridor |
+| Car | Original procedural body, windows, mirrors, rims, steering/spinning wheels, body roll/pitch, brake lights and headlights |
+| Handling | Fixed 120 Hz simplified simulation, drag, braking, handbrake, wet traction, off-road resistance |
+| Cameras | Chase, hood and timed orbit; speed-sensitive field of view |
+| Graphics | Physical car paint, sky, fog, shadows, tone mapping, high-quality bloom |
+| Environment | Clear, overcast, rain; day, sunset and night presets |
+| Audio | Synthesized engine, wind and rain; user interaction required |
+| Interface | Start/pause menu, settings, speedometer, distance and performance diagnostics |
+| Input | Keyboard, session-only remapping, touch controls and focus-loss pause |
 | Autopilot | Forgiving road-following scenic cruise |
 
 ## Controls
@@ -57,37 +59,36 @@ npm run preview
 | D / Right | Steer right |
 | Space | Handbrake |
 | C | Cycle camera |
-| R | Recover to the road |
+| R | Recover to road |
 | P | Toggle scenic autopilot |
 | Escape | Pause/resume |
 
 ## Architecture
 
-The source separates world generation, streaming, vehicle simulation/model, rendering, input, cameras, audio, and UI. Simulation coordinates remain independent of rendering coordinates. Terrain and road tests assert deterministic behavior and a road-flattened height field. Vehicle tests cover acceleration, braking, stationary steering, time-step validation, wet handling, and long-run finite values.
+Modules separate world generation/streaming, vehicle simulation/model, rendering, input, cameras, audio and UI. Simulation coordinates are independent of rendering offsets. Source lives in `src/`; regression tests live in `tests/`.
 
 ## Deployment
 
-Run `npm run build`, then publish the **contents of `dist/`** to a static host. Relative asset paths support subdirectory hosting. No deployment has been performed and no live game URL is claimed. Do not expose the development server to the public internet. Review dependency updates and security advisories before production deployment.
+After validation passes, build and publish the **contents of `dist/`** to a static host. Relative paths support subdirectory hosting. No deployment has been performed and no live game URL is claimed. Review dependency versions and security advisories before production deployment. Dependencies currently have exact version pins but there is no committed lockfile.
 
-## Known limitations and next work
+## Remaining work
 
-| Area | Limitation |
+| Area | Limitation / next step |
 |---|---|
-| Verification | No observed type-check, test, production-build, or browser-playtest results yet |
-| Art | One stylized procedural car; no licensed GLB importer, detailed cockpit, textures, or photorealistic asset pack |
-| Physics | Simplified handling, not rigid-body suspension, drivetrain, or tire simulation; no reverse gear |
-| Collisions | Forgiving outer corridor boundary only; trees/rocks/posts are decorative and do not collide |
-| Road generation | Seeded multi-frequency periodic curve, not a branching road network or nonrepeating spline generator |
-| Terrain | Sampled height mesh; steep off-road areas need mesh/collision alignment checks |
-| Biome transitions | Discrete chunk palettes; smooth ecological transitions are not implemented |
-| Ocean | Simple water plane, not shoreline erosion or simulated waves |
-| Night | Lighting presets and headlights; no star field or continuous astronomical day/night cycle |
-| Weather | Rain points, fog and grip adjustment; no wet road shader, reflections, snow, or spray |
-| Streaming | Bounded visible chunks, but generation is on the main thread; no workers, pooling, or dynamic per-chunk LOD yet |
-| Precision | Render-origin shifting reduces local camera precision errors, but terrain vertex buffers retain global coordinates; extreme-distance drives need local chunk vertices |
-| Audio | Basic synthesis rather than sampled engine/tire sounds |
-| Persistence | Settings and key remapping are session-only |
-| Accessibility | Touch and focus support exist; full game accessibility and device testing remain pending |
-| External resource | Google Fonts is optional; the interface falls back to system fonts when offline |
+| Validation | Run all checks and browser tests before changing behavior or claiming completion |
+| Art | One procedural car; no licensed GLB importer, detailed cockpit or photorealistic asset pack |
+| Physics | Simplified handling; no rigid-body suspension, drivetrain, tire simulation or reverse |
+| Collisions | Outer corridor boundary only; decorative objects do not collide |
+| Roads | Periodic seeded curve, not branching networks or nonrepeating splines |
+| Terrain | Off-road visual/simulation alignment and smooth biome transitions need work |
+| Water | Simple plane, no realistic shoreline or waves |
+| Lighting | Presets, not a continuous astronomical cycle; no star field |
+| Weather | No wet-road reflections, spray or snow |
+| Streaming | Main-thread generation; no workers, pooling or per-chunk LOD |
+| Precision | Terrain vertex buffers still retain global coordinates; extreme-distance precision needs local chunk vertices |
+| Persistence | Settings/remapping are session-only |
+| Audio | Basic synthesis, not sampled vehicle audio |
+| Accessibility | Real touch-device and wider accessibility testing pending |
+| External resources | Optional Google Fonts; offline system-font fallback |
 
-Before calling this production-ready, run validation, test every camera/weather/quality combination, drive across chunk and biome boundaries for at least 30 minutes, check frame times and memory, and test real touch devices. There is no claim that this implementation outperforms Slow Roads.
+The next gate is passing validation, followed by profiling and visual upgrades. Before production release, test every camera/weather/quality combination, drive across chunk/biome boundaries for at least 30 minutes, inspect frame times and memory, and test real touch devices. This project is not claimed to outperform Slow Roads.
