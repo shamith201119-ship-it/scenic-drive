@@ -1,4 +1,7 @@
 import type { DriveInput } from '../vehicle/physics';
+export function hasManualInput(input: DriveInput): boolean {
+  return input.throttle > 0 || input.brake > 0 || input.steer !== 0 || input.handbrake;
+}
 export function createControls(onAction:(action:string)=>void) {
   const keys=new Set<string>(), touch=new Set<string>();
   const bindings: Record<string,string>={throttle:'KeyW',brake:'KeyS',left:'KeyA',right:'KeyD'};
@@ -7,7 +10,8 @@ export function createControls(onAction:(action:string)=>void) {
   window.addEventListener('keydown',event=> {
     if(isEditing(event.target)) return;
     if(remapping) { bindings[remapping]=event.code; remapping=null; onAction('mapped'); event.preventDefault(); return; }
-    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space','Tab'].includes(event.code)) event.preventDefault();
+    const drivingKey=Object.values(bindings).includes(event.code)||['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(event.code);
+    if(drivingKey) event.preventDefault();
     keys.add(event.code);
     if(event.repeat) return;
     if(event.code==='Escape') onAction('pause');
